@@ -122,17 +122,13 @@ class MainActivity : AppCompatActivity() {
         saveButton.setOnClickListener { onSaveClicked() }
         cancelEditButton.setOnClickListener { resetForm() }
         setupPinButton(findViewById(R.id.pin_button))
-        findViewById<MaterialButton>(R.id.check_update_button).setOnClickListener { checkForUpdate(manual = true) }
+        // Fork personal: actualizaciones automáticas desactivadas (el actualizador apuntaba al repo del autor original).
+        findViewById<MaterialButton>(R.id.check_update_button).visibility = View.GONE
         findViewById<TextView>(R.id.version_text).text = getString(R.string.version_label, BuildConfig.VERSION_NAME)
 
         renderAccounts()
         showPreview(repository.accounts.list().firstOrNull())
         onCarrierChanged()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (::updateManager.isInitialized) checkForUpdate()
     }
 
     // ------------------------------------------------------------------ compañía
