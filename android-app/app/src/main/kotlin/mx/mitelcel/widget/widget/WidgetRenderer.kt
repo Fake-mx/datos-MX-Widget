@@ -132,6 +132,8 @@ object WidgetRenderer {
                 views.setTextColor(R.id.widget_amount, palette.primary)
                 views.setTextColor(R.id.widget_total, palette.secondary)
             }
+            // Los diseños de una sola imagen salen antes, en buildCanvasPanel.
+            else -> Unit
         }
         views.setTextViewText(R.id.widget_spent, entry.spentLine)
         views.setTextViewText(R.id.widget_daily, entry.dailyLine)
