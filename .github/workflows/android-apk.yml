@@ -102,6 +102,15 @@ jobs:
           set -o pipefail
           ./gradlew :app:assembleDebug --no-daemon 2>&1 | tee build.log
 
+      # Muestra los permisos que el APK declara DE VERDAD (ya fusionados con los de las librerías).
+      - name: Listar permisos del APK
+        run: |
+          AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
+          "$AAPT2" dump badging app/build/outputs/apk/debug/app-debug.apk | grep -E "^package:|^sdkVersion|^targetSdkVersion|^uses-permission|^uses-feature|^application-label:" > perms.txt
+          cat perms.txt
+          msg=$(sed 's/%/%25/g' perms.txt | awk '{printf "%s%%0A", $0}')
+          echo "::notice title=Permisos del APK::${msg}"
+
       # Errores de Kotlin ("e: ...") y de recursos (AAPT) como anotaciones visibles en el resumen.
       - name: Mostrar errores de compilación
         if: failure()
