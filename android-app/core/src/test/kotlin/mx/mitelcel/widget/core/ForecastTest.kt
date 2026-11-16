@@ -99,6 +99,8 @@ class ForecastTest {
         assertEquals("hoy 10:09", Freshness.label(ts("2026-10-20T10:09:00Z"), now, zone))
         assertEquals("ayer 22:15", Freshness.label(ts("2026-10-19T22:15:00Z"), now, zone))
         assertEquals("18 oct 08:00", Freshness.label(ts("2026-10-18T08:00:00Z"), now, zone))
+        assertEquals("20 oct 10:09", Freshness.stamp(ts("2026-10-20T10:09:00Z"), zone))
+        assertEquals("--:--", Freshness.stamp(0, zone))
     }
 
     @Test

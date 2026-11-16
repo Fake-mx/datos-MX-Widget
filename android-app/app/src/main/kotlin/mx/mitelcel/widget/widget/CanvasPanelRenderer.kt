@@ -23,6 +23,7 @@ object CanvasPanelRenderer {
     private const val STRIP_WIDTH = 900
     private const val STRIP_HEIGHT = 220
     private const val MARGIN = 20f
+    private const val SUBTLE_ALPHA = 190
 
     /** Lo que se dibuja de la línea, ya resuelto (el color de estado y las frases salen de la lógica central). */
     class Content(
@@ -32,6 +33,8 @@ object CanvasPanelRenderer {
         val status: String,
         /** Aviso corto abajo (ej. "Actualizando…" o "☁ Sin actualizar desde ayer 22:15"); null = nada. */
         val note: String?,
+        /** true = la nota es solo la fecha de la última consulta: se dibuja más chica y tenue para no estorbar. */
+        val noteSubtle: Boolean = false,
     )
 
     /** Frase de estado: "Te alcanza", "Se acaba antes", "Casi sin datos" (vacía si no se puede saber). */
@@ -264,7 +267,9 @@ object CanvasPanelRenderer {
         size: Float = 26f,
     ) {
         val note = content.note ?: return
-        val paint = paint(palette.secondary, size, align = align, palette = palette)
+        val subtle = content.noteSubtle
+        val paint = paint(palette.secondary, if (subtle) size - 5f else size, align = align, palette = palette)
+        if (subtle) paint.alpha = SUBTLE_ALPHA
         canvas.drawText(note, x, baseline, paint.fit(note, maxWidth))
     }
 }

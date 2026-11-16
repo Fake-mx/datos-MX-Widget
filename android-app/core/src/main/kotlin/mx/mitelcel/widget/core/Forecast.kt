@@ -103,6 +103,13 @@ object Freshness {
         }
     }
 
+    /** Fecha y hora de la última consulta, siempre completas: "16 nov 13:55". */
+    fun stamp(timestampMillis: Long, zone: ZoneId): String {
+        if (timestampMillis <= 0) return "--:--"
+        val then = Instant.ofEpochMilli(timestampMillis).atZone(zone)
+        return "${then.dayOfMonth} ${MONTHS[then.monthValue - 1]} ${TIME.format(then)}"
+    }
+
     fun shortDate(date: LocalDate): String = "${date.dayOfMonth} ${MONTHS[date.monthValue - 1]}"
 }
 
