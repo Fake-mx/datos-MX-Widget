@@ -57,6 +57,8 @@ class TelcelClient(
         } finally {
             // Siempre revocar: Telcel bloquea la cuenta si se acumulan sesiones SSO abiertas.
             onRevoke(runCatching { revoke(http, ssoToken) }.exceptionOrNull())
+            // Cerrar las conexiones ya usadas: si no, se quedan abiertas minutos sin necesidad.
+            http.connectionPool.evictAll()
         }
     }
 
@@ -291,8 +293,10 @@ class TelcelClient(
         private val FORM = "application/x-www-form-urlencoded".toMediaType()
 
         internal val DEFAULT_HTTP: OkHttpClient = OkHttpClient.Builder()
-            .connectTimeout(20, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
+            // Si la red no deja pasar nada (Wi-Fi sin internet), mejor fallar pronto y reintentar.
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(20, TimeUnit.SECONDS)
+            .callTimeout(40, TimeUnit.SECONDS)
             .build()
 
         /** "+52 (55) 1234-5678" -> "5512345678" */

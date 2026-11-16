@@ -8,6 +8,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
@@ -93,6 +94,13 @@ class RefreshWorker(context: Context, params: WorkerParameters) : Worker(context
             WorkManager.getInstance(context)
                 .enqueueUniqueWork("$ONE_SHOT_WORK:${accountId ?: "all"}", ExistingWorkPolicy.KEEP, request)
         }
+
+        /** Estado de la consulta manual de esa línea mientras no termine (null = ya terminó o no existe). */
+        fun pendingState(context: Context, accountId: String?): WorkInfo.State? = WorkManager.getInstance(context)
+            .getWorkInfosForUniqueWork("$ONE_SHOT_WORK:${accountId ?: "all"}")
+            .get()
+            .map { it.state }
+            .firstOrNull { !it.isFinished }
 
         fun cancelPeriodic(context: Context) {
             WorkManager.getInstance(context).cancelUniqueWork(PERIODIC_WORK)

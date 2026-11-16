@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import mx.mitelcel.widget.data.WidgetConfigStore
 import mx.mitelcel.widget.work.RefreshWorker
+import mx.mitelcel.widget.work.StatusTimeoutWorker
 
 /**
  * Recibe los eventos del sistema sobre los widgets. Debe ser rápido (≈10 s máx.),
@@ -43,6 +44,7 @@ class MiTelcelWidgetProvider : AppWidgetProvider() {
             val accountId = intent.getStringExtra(EXTRA_ACCOUNT_ID)
             WidgetRenderer.showStatus(context, accountId, "Actualizando…")
             RefreshWorker.refreshNow(context, accountId, minAgeMillis = RefreshWorker.MANUAL_MIN_AGE_MS)
+            StatusTimeoutWorker.schedule(context, accountId)
         }
     }
 
