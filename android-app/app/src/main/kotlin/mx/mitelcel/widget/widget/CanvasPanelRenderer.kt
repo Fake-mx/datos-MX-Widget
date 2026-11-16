@@ -127,7 +127,7 @@ object CanvasPanelRenderer {
 
         val perDay = if (entry.unlimited) "Sin límite" else entry.dailyAllowanceText.removeSuffix("/d") + " al día"
         canvas.drawText(perDay, MARGIN, 258f, paint(palette.primary, 44f, bold = true, palette = palette).fit(perDay, maxWidth))
-        val during = "durante ${entry.daysLeftText}"
+        val during = "${entry.daysLeftText} para el corte"
         canvas.drawText(during, MARGIN, 300f, paint(palette.secondary, 30f, palette = palette).fit(during, maxWidth))
         drawNote(canvas, content, palette, MARGIN, 344f, Paint.Align.LEFT, maxWidth)
     }
