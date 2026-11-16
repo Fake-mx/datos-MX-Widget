@@ -21,8 +21,8 @@ class StatusTimeoutWorker(context: Context, params: WorkerParameters) : Worker(c
         val accountId = inputData.getString(KEY_ACCOUNT_ID)
         val text = when (RefreshWorker.pendingState(applicationContext, accountId)) {
             null -> null
-            WorkInfo.State.RUNNING -> "Telcel tarda en responder…"
-            else -> "Sin conexión, reintentando…"
+            WorkInfo.State.RUNNING -> "Telcel tarda…"
+            else -> "Sin conexión…"
         }
         if (text == null) {
             WidgetRenderer.updateAll(applicationContext)

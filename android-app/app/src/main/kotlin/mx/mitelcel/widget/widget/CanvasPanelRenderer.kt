@@ -23,7 +23,8 @@ object CanvasPanelRenderer {
     private const val STRIP_WIDTH = 900
     private const val STRIP_HEIGHT = 220
     private const val MARGIN = 20f
-    private const val SUBTLE_ALPHA = 190
+    private const val STAMP_SIZE = 21f
+    private const val STAMP_ALPHA = 190
 
     /** Lo que se dibuja de la línea, ya resuelto (el color de estado y las frases salen de la lógica central). */
     class Content(
@@ -33,8 +34,8 @@ object CanvasPanelRenderer {
         val status: String,
         /** Aviso corto abajo (ej. "Actualizando…" o "☁ Sin actualizar desde ayer 22:15"); null = nada. */
         val note: String?,
-        /** true = la nota es solo la fecha de la última consulta: se dibuja más chica y tenue para no estorbar. */
-        val noteSubtle: Boolean = false,
+        /** Hora y fecha de la última consulta ("13:55 - 16 nov"): siempre abajo a la derecha, chica y tenue. */
+        val stamp: String? = null,
     )
 
     /** Frase de estado: "Te alcanza", "Se acaba antes", "Casi sin datos" (vacía si no se puede saber). */
@@ -54,6 +55,7 @@ object CanvasPanelRenderer {
         val canvas = Canvas(bitmap)
         if (!content.entry.hasPlan) {
             drawNoData(canvas, content, palette, width)
+            drawStamp(canvas, content, palette, width, height, if (style == LayoutStyle.STRIP) 30f else MARGIN)
             return bitmap
         }
         when (style) {
@@ -65,6 +67,7 @@ object CanvasPanelRenderer {
             // Los dos diseños originales no pasan por aquí; si alguien se equivoca, se ve un anillo.
             LayoutStyle.GAUGE, LayoutStyle.BAR -> drawRing(canvas, content, palette)
         }
+        drawStamp(canvas, content, palette, width, height, if (style == LayoutStyle.STRIP) 30f else MARGIN)
         return bitmap
     }
 
@@ -100,7 +103,7 @@ object CanvasPanelRenderer {
 
         val days = paint(palette.forDaysLeft(entry.daysLeft), 38f, bold = true, align = Paint.Align.CENTER, palette = palette)
         canvas.drawText(entry.daysLeftText, cx, 318f, days.fit(entry.daysLeftText, SQUARE - 2 * MARGIN))
-        drawNote(canvas, content, palette, SQUARE / 2f, 350f, Paint.Align.CENTER, SQUARE - 2 * MARGIN)
+        drawNote(canvas, content, palette, MARGIN, 350f, Paint.Align.LEFT, noteWidth(content, palette, SQUARE - 2 * MARGIN))
     }
 
     /** Solo el número: lo más fácil de leer de un vistazo. */
@@ -116,7 +119,7 @@ object CanvasPanelRenderer {
         val line = "${entry.daysLeftText} · corte ${entry.shortCutoffDate}"
         canvas.drawText(line, MARGIN, 272f, paint(palette.secondary, 32f, palette = palette).fit(line, maxWidth))
         drawStatus(canvas, content, palette, MARGIN, 318f, Paint.Align.LEFT, maxWidth)
-        drawNote(canvas, content, palette, MARGIN, 348f, Paint.Align.LEFT, maxWidth)
+        drawNote(canvas, content, palette, MARGIN, 348f, Paint.Align.LEFT, noteWidth(content, palette, maxWidth))
     }
 
     /** Número + cuánto puedes gastar por día para llegar al corte. */
@@ -132,7 +135,7 @@ object CanvasPanelRenderer {
         canvas.drawText(perDay, MARGIN, 258f, paint(palette.primary, 44f, bold = true, palette = palette).fit(perDay, maxWidth))
         val during = "${entry.daysLeftText} para el corte"
         canvas.drawText(during, MARGIN, 300f, paint(palette.secondary, 30f, palette = palette).fit(during, maxWidth))
-        drawNote(canvas, content, palette, MARGIN, 344f, Paint.Align.LEFT, maxWidth)
+        drawNote(canvas, content, palette, MARGIN, 344f, Paint.Align.LEFT, noteWidth(content, palette, maxWidth))
     }
 
     /** Cuadrado con nombre y días arriba, número grande, barra y estado. */
@@ -149,7 +152,7 @@ object CanvasPanelRenderer {
         drawStatus(canvas, content, palette, MARGIN, 262f, Paint.Align.LEFT, maxWidth)
         val total = "de ${entry.totalText}"
         canvas.drawText(total, MARGIN, 306f, paint(palette.secondary, 30f, palette = palette).fit(total, maxWidth))
-        drawNote(canvas, content, palette, MARGIN, 346f, Paint.Align.LEFT, maxWidth)
+        drawNote(canvas, content, palette, MARGIN, 346f, Paint.Align.LEFT, noteWidth(content, palette, maxWidth))
     }
 
     /** Franja 4×1: número a la izquierda; días y estado a la derecha. */
@@ -163,7 +166,7 @@ object CanvasPanelRenderer {
         val days = paint(palette.forDaysLeft(entry.daysLeft), 80f, bold = true, align = Paint.Align.RIGHT, palette = palette)
         canvas.drawText(entry.daysLeftText, right, 104f, days.fit(entry.daysLeftText, 300f))
         drawStatus(canvas, content, palette, right, 164f, Paint.Align.RIGHT, 300f, size = 46f)
-        drawNote(canvas, content, palette, right, 206f, Paint.Align.RIGHT, 300f, size = 28f)
+        drawNote(canvas, content, palette, right, 190f, Paint.Align.RIGHT, 300f, size = 24f)
     }
 
     /** Sin plan o sin datos todavía: el nombre y un aviso; la razón concreta va en la nota. */
@@ -256,6 +259,20 @@ object CanvasPanelRenderer {
         canvas.drawText(content.status, x, baseline, paint.fit(content.status, maxWidth))
     }
 
+    /** Ancho para el aviso de la izquierda: lo que sobra después de la hora y fecha de la derecha. */
+    private fun noteWidth(content: Content, palette: WidgetPalette, full: Float): Float {
+        val stamp = content.stamp ?: return full
+        return full - stampPaint(palette, Paint.Align.RIGHT).measureText(stamp) - 14f
+    }
+
+    private fun stampPaint(palette: WidgetPalette, align: Paint.Align): Paint =
+        paint(palette.secondary, STAMP_SIZE, align = align, palette = palette).apply { alpha = STAMP_ALPHA }
+
+    private fun drawStamp(canvas: Canvas, content: Content, palette: WidgetPalette, width: Int, height: Int, margin: Float) {
+        val stamp = content.stamp ?: return
+        canvas.drawText(stamp, width - margin, height - 8f, stampPaint(palette, Paint.Align.RIGHT))
+    }
+
     private fun drawNote(
         canvas: Canvas,
         content: Content,
@@ -267,9 +284,7 @@ object CanvasPanelRenderer {
         size: Float = 26f,
     ) {
         val note = content.note ?: return
-        val subtle = content.noteSubtle
-        val paint = paint(palette.secondary, if (subtle) size - 5f else size, align = align, palette = palette)
-        if (subtle) paint.alpha = SUBTLE_ALPHA
+        val paint = paint(palette.secondary, size, align = align, palette = palette)
         canvas.drawText(note, x, baseline, paint.fit(note, maxWidth))
     }
 }

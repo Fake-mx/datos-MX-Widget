@@ -163,22 +163,21 @@ object WidgetRenderer {
         val entry = panel.entry
         val stale = Freshness.isStale(entry.timestampMillis, now)
         val level = UsageLevels.of(entry, panel.forecast)
-        // Aviso abajo: el que pidan ("Actualizando…"), o por qué el dato es viejo / no hay datos.
-        // Con dato vigente, siempre la fecha y hora de la última consulta, chica y tenue.
-        val warning = statusText
-            ?: if (stale || entry.timestampMillis <= 0) {
-                StatusLine.of(entry, panel.forecast, now, ZoneId.systemDefault(), panel.lastError)
-            } else {
-                null
+        // Aviso abajo a la izquierda: el que pidan ("Actualizando…"), o por qué el dato es viejo / no hay datos.
+        // Corto a propósito: comparte la línea con la hora y fecha de la última consulta, a la derecha.
+        val note = statusText
+            ?: when {
+                entry.timestampMillis <= 0 -> StatusLine.of(entry, panel.forecast, now, ZoneId.systemDefault(), panel.lastError)
+                stale -> panel.lastError?.let { "☁ $it" } ?: "☁ Sin actualizar"
+                else -> null
             }
-        val note = warning ?: Freshness.stamp(entry.timestampMillis, ZoneId.systemDefault())
         val content = CanvasPanelRenderer.Content(
             entry = entry,
             title = panel.title,
             level = level,
             status = CanvasPanelRenderer.statusWord(entry, panel.forecast, level),
             note = note,
-            noteSubtle = warning == null,
+            stamp = if (entry.timestampMillis > 0) Freshness.stamp(entry.timestampMillis, ZoneId.systemDefault()) else null,
         )
         val views = RemoteViews(context.packageName, style.panelLayout)
         views.setImageViewBitmap(R.id.widget_canvas, CanvasPanelRenderer.render(style.layoutStyle, content, style.palette))
