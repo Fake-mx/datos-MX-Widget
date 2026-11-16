@@ -14,6 +14,7 @@ import mx.mitelcel.widget.core.Forecaster
 import mx.mitelcel.widget.core.Freshness
 import mx.mitelcel.widget.core.StatusLine
 import mx.mitelcel.widget.core.UsageEntry
+import mx.mitelcel.widget.core.UsageLevels
 import mx.mitelcel.widget.data.Account
 import mx.mitelcel.widget.data.AccountStore
 import mx.mitelcel.widget.data.LayoutStyle
@@ -72,7 +73,7 @@ object WidgetRenderer {
         root.setInt(R.id.widget_bg, "setImageAlpha", alpha)
 
         // RemoteViews no deja cambiar la orientación de un LinearLayout: hay dos filas y se muestra una.
-        val row = if (style.layoutStyle == LayoutStyle.BAR) R.id.widget_panels_stacked else R.id.widget_panels
+        val row = if (style.layoutStyle.isStacked) R.id.widget_panels_stacked else R.id.widget_panels
         root.setViewVisibility(R.id.widget_panels, if (row == R.id.widget_panels) View.VISIBLE else View.GONE)
         root.setViewVisibility(R.id.widget_panels_stacked, if (row == R.id.widget_panels_stacked) View.VISIBLE else View.GONE)
         root.removeAllViews(row)
@@ -95,6 +96,7 @@ object WidgetRenderer {
         index: Int,
         statusText: String?,
     ): RemoteViews {
+        if (style.layoutStyle.isCanvas) return buildCanvasPanel(context, panel, style, appWidgetId, index, statusText)
         val now = Instant.now()
         val stale = Freshness.isStale(panel.entry.timestampMillis, now)
         // Si a este ritmo no alcanza, lo "disponible" se pinta de amarillo en lugar de verde.
@@ -140,6 +142,44 @@ object WidgetRenderer {
 
         if (appWidgetId != null) {
             // Encabezado = configurar ESTE widget; resto del panel = actualizar ESA línea.
+            views.setOnClickPendingIntent(R.id.widget_header, configureIntent(context, appWidgetId))
+            views.setOnClickPendingIntent(R.id.widget_body, refreshIntent(context, appWidgetId, index, panel.accountId))
+        }
+        return views
+    }
+
+    /** Diseños nuevos: todo el panel es una imagen; solo se declaran la imagen, su alfa y las acciones al tocar. */
+    private fun buildCanvasPanel(
+        context: Context,
+        panel: Panel,
+        style: WidgetStyle,
+        appWidgetId: Int?,
+        index: Int,
+        statusText: String?,
+    ): RemoteViews {
+        val now = Instant.now()
+        val entry = panel.entry
+        val stale = Freshness.isStale(entry.timestampMillis, now)
+        val level = UsageLevels.of(entry, panel.forecast)
+        // Aviso abajo: el que pidan ("Actualizando…"), o por qué el dato es viejo / no hay datos.
+        val note = statusText
+            ?: if (stale || entry.timestampMillis <= 0) {
+                StatusLine.of(entry, panel.forecast, now, ZoneId.systemDefault(), panel.lastError)
+            } else {
+                null
+            }
+        val content = CanvasPanelRenderer.Content(
+            entry = entry,
+            title = panel.title,
+            level = level,
+            status = CanvasPanelRenderer.statusWord(entry, panel.forecast, level),
+            note = note,
+        )
+        val views = RemoteViews(context.packageName, style.panelLayout)
+        views.setImageViewBitmap(R.id.widget_canvas, CanvasPanelRenderer.render(style.layoutStyle, content, style.palette))
+        // Dato viejo: la imagen se atenúa para que no se lea como si fuera actual.
+        views.setInt(R.id.widget_canvas, "setImageAlpha", if (stale) 110 else 255)
+        if (appWidgetId != null) {
             views.setOnClickPendingIntent(R.id.widget_header, configureIntent(context, appWidgetId))
             views.setOnClickPendingIntent(R.id.widget_body, refreshIntent(context, appWidgetId, index, panel.accountId))
         }

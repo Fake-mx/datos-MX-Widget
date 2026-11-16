@@ -19,11 +19,13 @@ data class WidgetStyle(
 ) {
     val palette: WidgetPalette get() = if (darkText) WidgetPalette.DARK_TEXT else WidgetPalette.LIGHT_TEXT
 
-    /** Layout del panel de cada línea según diseño y color de texto (4 combinaciones). */
+    /** Layout del panel de cada línea según diseño y color de texto. Los diseños de una sola imagen no dependen del color. */
     val panelLayout: Int
         get() = when (layoutStyle) {
             LayoutStyle.GAUGE -> palette.gaugePanelLayout
             LayoutStyle.BAR -> palette.barPanelLayout
+            LayoutStyle.STRIP -> R.layout.widget_panel_canvas_stacked
+            LayoutStyle.RING, LayoutStyle.NUMBER, LayoutStyle.DAILY, LayoutStyle.SQUARE -> R.layout.widget_panel_canvas
         }
 
     companion object {

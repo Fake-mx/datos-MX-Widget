@@ -120,10 +120,47 @@ class ForecastTest {
     }
 
     @Test
-    fun `datos bajos = menos de 1 GB o menos del 10 por ciento`() {
-        assertTrue(LowData.isLow(entry(9500.0, 5))) // quedan 500 MB
+    fun `datos bajos = menos del 10 por ciento del total contratado`() {
+        assertTrue(LowData.isLow(entry(9500.0, 5))) // quedan 500 MB de 10 GB: 5%
         assertTrue(LowData.isLow(entry(46000.0, 5, total = 50000.0))) // 4 GB de 50: 8%
         assertFalse(LowData.isLow(entry(4000.0, 5))) // quedan 6 GB
         assertFalse(LowData.isLow(entry(0.0, 5, total = 0.0))) // sin plan: nada que avisar
+        // Plan chico: quedar 1 GB de 4 GB (25%) ya no es "poco"; 300 MB de 4 GB (7.5%) sí.
+        assertFalse(LowData.isLow(entry(3000.0, 5, total = 4000.0)))
+        assertTrue(LowData.isLow(entry(3700.0, 5, total = 4000.0)))
+    }
+
+    @Test
+    fun `color verde ámbar rojo según pronóstico y porcentaje`() {
+        val runsOut = Forecast.RunsOut(LocalDate.of(2026, 10, 25))
+        // Te alcanza: verde aunque quede poco porcentaje.
+        assertEquals(UsageLevel.OK, UsageLevels.of(entry(9500.0, 1), Forecast.Enough))
+        // Se acaba antes del corte: ámbar; rojo solo si además queda menos del 10%.
+        assertEquals(UsageLevel.WARN, UsageLevels.of(entry(7000.0, 10), runsOut))
+        assertEquals(UsageLevel.LOW, UsageLevels.of(entry(9500.0, 10), runsOut))
+        // Sin pronóstico: por porcentaje restante (25% y 10%).
+        assertEquals(UsageLevel.OK, UsageLevels.of(entry(5000.0, 10), Forecast.Unknown))
+        assertEquals(UsageLevel.WARN, UsageLevels.of(entry(8000.0, 10), Forecast.Unknown))
+        assertEquals(UsageLevel.LOW, UsageLevels.of(entry(9500.0, 10), Forecast.Unknown))
+        // Mismo porcentaje en un plan de 4 GB: el mismo color que en uno de 10 GB.
+        assertEquals(UsageLevel.WARN, UsageLevels.of(entry(3200.0, 10, total = 4000.0), Forecast.Unknown))
+        // Sin nada disponible: rojo aunque el pronóstico diga otra cosa.
+        assertEquals(UsageLevel.LOW, UsageLevels.of(entry(10000.0, 10), Forecast.Enough))
+        // Sin plan: no hay nada que pintar de alarma.
+        assertEquals(UsageLevel.OK, UsageLevels.of(entry(0.0, 10, total = 0.0), Forecast.Unknown))
+    }
+
+    @Test
+    fun `cantidades con un decimal y paso a MB bajo 1 GB`() {
+        assertEquals("51.9 GB", entry(8100.0, 5, total = 60000.0).remainingText)
+        assertEquals("1.0 GB", entry(9000.0, 5).remainingText)
+        assertEquals("999 MB", entry(9000.6, 5).remainingText)
+        assertEquals("847 MB", entry(9153.0, 5).remainingText)
+        // 999.6 MB redondeado daría "1000 MB": debe verse como 1.0 GB.
+        assertEquals("1.0 GB", entry(9000.4, 5).remainingText)
+        assertEquals("0 MB", entry(10000.0, 5).remainingText)
+        assertEquals("0 MB", entry(10500.0, 5).remainingText) // gastó de más: nunca negativo
+        assertEquals("51.9", entry(8100.0, 5, total = 60000.0).remainingParts.value)
+        assertEquals("MB", entry(9153.0, 5).remainingParts.unit)
     }
 }

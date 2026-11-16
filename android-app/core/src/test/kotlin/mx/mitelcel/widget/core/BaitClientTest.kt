@@ -50,7 +50,7 @@ class BaitClientTest {
         assertEquals(1024, entry.mbPerGb)
         assertEquals(11.0, entry.remainingGB, 0.001)
         assertEquals(15.0, entry.totalGB, 0.001)
-        assertEquals("4.00 GB", entry.spentShortText)
+        assertEquals("4.0 GB", entry.spentShortText)
     }
 
     @Test

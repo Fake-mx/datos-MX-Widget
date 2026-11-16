@@ -63,6 +63,11 @@ class WidgetConfigActivity : AppCompatActivity() {
     private val layoutButtons = mapOf(
         LayoutStyle.GAUGE to R.id.layout_gauge,
         LayoutStyle.BAR to R.id.layout_bar,
+        LayoutStyle.RING to R.id.layout_ring,
+        LayoutStyle.NUMBER to R.id.layout_number,
+        LayoutStyle.DAILY to R.id.layout_daily,
+        LayoutStyle.SQUARE to R.id.layout_square,
+        LayoutStyle.STRIP to R.id.layout_strip,
     )
 
     // Estado de la imagen de fondo mientras se configura (se aplica al Guardar).
@@ -114,7 +119,9 @@ class WidgetConfigActivity : AppCompatActivity() {
         }
         findViewById<MaterialButton>(R.id.remove_image_button).setOnClickListener { removeImage() }
 
-        val current = configStore.get(appWidgetId)
+        // Un widget recién agregado empieza con el anillo; uno ya configurado conserva su diseño.
+        val stored = configStore.get(appWidgetId)
+        val current = if (configStore.exists(appWidgetId)) stored else stored.copy(layoutStyle = LayoutStyle.RING)
         // El Slider truena si el valor no es múltiplo de stepSize (5): redondeamos por si acaso.
         opacitySlider.value = ((current.opacityPercent + 2) / 5 * 5).coerceIn(0, 100).toFloat()
         opacitySlider.addOnChangeListener { _, _, _ -> renderPreview() }
@@ -240,11 +247,13 @@ class WidgetConfigActivity : AppCompatActivity() {
 
         val panels = selectedAccounts().map { WidgetRenderer.panelFor(applicationContext, it) }
         // La vista previa toma la proporción con la que se ve mejor cada diseño en la pantalla de inicio:
-        // medidor = 2×2 (o 4×2 con dos líneas); barra = 4×1 (o 4×2 con dos líneas, apiladas).
+        // medidor y diseños cuadrados = 2×2 (o 4×2 con dos líneas); barra y franja = 4×1 (o 4×2, apiladas).
         val twoLines = panels.size > 1
         val (widthDp, heightDp) = when (style.layoutStyle) {
             LayoutStyle.GAUGE -> (if (twoLines) 340 else 200) to 200
             LayoutStyle.BAR -> 330 to (if (twoLines) 220 else 130)
+            LayoutStyle.STRIP -> 330 to (if (twoLines) 180 else 90)
+            LayoutStyle.RING, LayoutStyle.NUMBER, LayoutStyle.DAILY, LayoutStyle.SQUARE -> (if (twoLines) 340 else 200) to 200
         }
         val density = resources.displayMetrics.density
         previewFrame.layoutParams = previewFrame.layoutParams.apply {

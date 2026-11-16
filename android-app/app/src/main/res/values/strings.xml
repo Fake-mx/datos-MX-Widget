@@ -41,6 +41,11 @@
     <string name="config_layout">Diseño</string>
     <string name="layout_gauge">Medidor</string>
     <string name="layout_bar">Barra</string>
+    <string name="layout_ring">Anillo</string>
+    <string name="layout_number">Número</string>
+    <string name="layout_daily">Gasto al día</string>
+    <string name="layout_square">Cuadrado</string>
+    <string name="layout_strip">Franja</string>
     <string name="check_update">Buscar actualizaciones</string>
     <string name="update_checking">Buscando actualizaciones…</string>
     <string name="update_none">Ya tienes la versión más reciente (%1$s).</string>

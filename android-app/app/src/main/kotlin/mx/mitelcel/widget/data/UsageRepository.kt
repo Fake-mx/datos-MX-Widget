@@ -1,6 +1,7 @@
 package mx.mitelcel.widget.data
 
 import android.content.Context
+import mx.mitelcel.widget.RefreshAlerts
 import mx.mitelcel.widget.core.BaitClient
 import mx.mitelcel.widget.core.Carrier
 import mx.mitelcel.widget.core.KeyCache
@@ -25,7 +26,9 @@ class UsageRepository(
     context: Context,
     /** Qué cliente usar para cada compañía. Inyectable para pruebas. */
     private val providers: (Carrier) -> UsageProvider =
-        PrefsKeyCache(context).let { keys -> { carrier: Carrier -> defaultProvider(carrier, keys) } },
+        PrefsKeyCache(context).let { keys ->
+            { carrier: Carrier -> defaultProvider(carrier, keys, RefreshAlerts(context)::recordRevoke) }
+        },
     val accounts: AccountStore = AccountStore(context),
     private val cache: UsageCache = UsageCache(context),
     val history: UsageHistoryStore = UsageHistoryStore(context),
@@ -77,8 +80,8 @@ class UsageRepository(
         val LOCK = Any()
 
         // Un `when` exhaustivo: si se agrega una compañía al enum y se olvida aquí, NO compila.
-        fun defaultProvider(carrier: Carrier, keys: KeyCache): UsageProvider = when (carrier) {
-            Carrier.TELCEL -> TelcelClient(keys = keys)
+        fun defaultProvider(carrier: Carrier, keys: KeyCache, onRevoke: (Throwable?) -> Unit): UsageProvider = when (carrier) {
+            Carrier.TELCEL -> TelcelClient(keys = keys, onRevoke = onRevoke)
             Carrier.BAIT -> BaitClient(keys = keys)
             Carrier.MOVISTAR -> MovistarClient(keys = keys)
         }

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Diseños nuevos (anillo, número, gasto al día, cuadrado): todo el panel es UNA imagen
+    (CanvasPanelRenderer). Se mantienen los ids widget_header (arriba: configurar este widget)
+    y widget_body (resto: actualizar esa línea) para que WidgetRenderer les ponga la misma acción.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="0dp"
+    android:layout_height="match_parent"
+    android:layout_weight="1"
+    android:padding="4dp">
+
+    <ImageView
+        android:id="@+id/widget_canvas"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+
+    <FrameLayout
+        android:id="@+id/widget_body"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <FrameLayout
+        android:id="@+id/widget_header"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_gravity="top" />
+</FrameLayout>

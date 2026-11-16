@@ -6,6 +6,11 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
+/** Un monto ya formateado: [value] "51.9" y [unit] "GB" (o "847" y "MB"). */
+data class AmountParts(val value: String, val unit: String) {
+    val text: String get() = "$value $unit"
+}
+
 /** Una bolsa de datos (ej. "0-0-0" Plan Base, "0-1-0" Datos Promocionales). */
 @Serializable
 data class BucketUsage(val id: String, val name: String, val consumedMB: Double, val totalMB: Double, val availableMB: Double)
@@ -40,8 +45,20 @@ data class UsageEntry(
 
     val totalGB: Double get() = totalMB / mbPerGb
 
-    /** "5.47 GB": lo mismo en el medidor y en la barra (un solo lugar para el formato). */
-    val remainingText: String get() = if (unlimited) "Ilimitado" else fmt("%.2f GB", remainingGB)
+    /** Lo que queda partido en número y unidad ("51.9" + "GB", o "847" + "MB"). */
+    val remainingParts: AmountParts
+        get() = if (unlimited) AmountParts("∞", "Ilimitado") else amountParts(max(0.0, availableMB))
+
+    /** "51.9 GB" o "847 MB": lo mismo en todos los diseños (un solo lugar para el formato). */
+    val remainingText: String get() = if (unlimited) "Ilimitado" else remainingParts.text
+
+    /** Fracción de lo contratado que aún queda (0.0 a 1.0). Un plan ilimitado cuenta como lleno. */
+    val remainingRatio: Double
+        get() = when {
+            unlimited -> 1.0
+            totalMB > 0 -> min(1.0, max(0.0, availableMB / totalMB))
+            else -> 0.0
+        }
 
     /** "15.0 GB" */
     val totalText: String get() = fmt("%.1f GB", totalGB)
@@ -68,11 +85,24 @@ data class UsageEntry(
     val dailyAllowanceText: String
         get() {
             val dailyMB = max(0.0, availableMB) / max(1, daysLeft)
-            return if (dailyMB >= mbPerGb) fmt("%.2f GB/d", dailyMB / mbPerGb) else fmt("%.0f MB/d", dailyMB)
+            return amountParts(dailyMB).text + "/d"
         }
 
     val spentShortText: String
-        get() = if (consumedMB < mbPerGb) fmt("%.0f MB", consumedMB) else fmt("%.2f GB", consumedMB / mbPerGb)
+        get() = amountParts(max(0.0, consumedMB)).text
+
+    /**
+     * Cantidad con un decimal en GB, o en MB enteros si es menos de 1 GB. Redondear 999.6 MB daría
+     * "1000 MB": en ese caso se muestra "1.0 GB" para que nunca salgan 4 dígitos en MB.
+     */
+    internal fun amountParts(mb: Double): AmountParts {
+        if (mb < mbPerGb) {
+            val rounded = mb.roundToInt()
+            if (rounded < mbPerGb) return AmountParts(rounded.toString(), "MB")
+            return AmountParts("1.0", "GB")
+        }
+        return AmountParts(fmt("%.1f", mb / mbPerGb), "GB")
+    }
 
     val daysLeftText: String get() = "$daysLeft ${if (daysLeft == 1) "día" else "días"}"
 

@@ -5,8 +5,28 @@ import android.content.Context
 /** Color del texto del widget. AUTO lo decide según lo que haya detrás (ver TextToneResolver). */
 enum class TextTone { AUTO, WHITE, BLACK }
 
-/** Diseño del panel de cada línea: Estilo 1 (medidor semicircular) o Estilo 2 (barra horizontal). */
-enum class LayoutStyle { GAUGE, BAR }
+/**
+ * Diseño del panel de cada línea.
+ * GAUGE (medidor semicircular) y BAR (barra horizontal) son los originales; el resto se dibuja
+ * completo en una imagen (ver CanvasPanelRenderer): RING anillo, NUMBER solo el número,
+ * DAILY número + gasto al día, SQUARE cuadrado con barra y STRIP franja horizontal 4×1.
+ */
+enum class LayoutStyle {
+    GAUGE,
+    BAR,
+    RING,
+    NUMBER,
+    DAILY,
+    SQUARE,
+    STRIP,
+    ;
+
+    /** Los diseños de una sola imagen (todos menos los dos originales). */
+    val isCanvas: Boolean get() = this != GAUGE && this != BAR
+
+    /** Franjas y barras se apilan una debajo de otra; el resto va lado a lado. */
+    val isStacked: Boolean get() = this == BAR || this == STRIP
+}
 
 /**
  * Configuración de UN widget en la pantalla de inicio.
@@ -64,6 +84,9 @@ class WidgetConfigStore(context: Context) {
             .remove(legacyAccountKey(appWidgetId))
             .apply()
     }
+
+    /** ¿Este widget ya se configuró alguna vez? (para ofrecer el diseño nuevo por defecto en uno recién agregado) */
+    fun exists(appWidgetId: Int): Boolean = prefs.contains(accountsKey(appWidgetId)) || prefs.contains(legacyAccountKey(appWidgetId))
 
     fun delete(appWidgetId: Int) {
         prefs.edit()

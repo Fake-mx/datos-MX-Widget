@@ -39,6 +39,8 @@ class TelcelClient(
     private val endpoints: TelcelEndpoints = TelcelEndpoints(),
     private val baseHttp: OkHttpClient = DEFAULT_HTTP,
     private val keys: KeyCache = InMemoryKeyCache(),
+    /** Se llama al cerrar la sesión SSO: null si salió bien, o el error. Permite avisar si Telcel deja de cerrarla. */
+    private val onRevoke: (Throwable?) -> Unit = {},
 ) : UsageProvider {
     override fun fetchUsage(rawPhone: String, password: String?): UsageEntry {
         val phone = normalizePhone(rawPhone)
@@ -54,7 +56,7 @@ class TelcelClient(
             return HomeFlowParser.parse(fetchHome(http, phone, b2fToken))
         } finally {
             // Siempre revocar: Telcel bloquea la cuenta si se acumulan sesiones SSO abiertas.
-            runCatching { revoke(http, ssoToken) }
+            onRevoke(runCatching { revoke(http, ssoToken) }.exceptionOrNull())
         }
     }
 
@@ -249,7 +251,9 @@ class TelcelClient(
             .url(endpoints.revoke)
             .post("token=${enc(ssoToken)}&token_type=revoke".toRequestBody(FORM))
             .build()
-        http.newCall(request).execute().close()
+        http.newCall(request).execute().use { resp ->
+            if (!resp.isSuccessful) throw TelcelException("El cierre de sesión respondió HTTP ${resp.code}")
+        }
     }
 
     private fun executeJson(http: OkHttpClient, request: Request, step: String): JsonObject = http.newCall(request).execute().use { resp ->

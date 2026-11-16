@@ -59,7 +59,7 @@ class HomeFlowParserTest {
         val entry = HomeFlowParser.parse(fixture, now, ZoneOffset.UTC)
 
         assertEquals("9 días", entry.daysLeftText)
-        assertEquals("9.50 GB", entry.spentShortText)
+        assertEquals("9.5 GB", entry.spentShortText)
         assertEquals(63, entry.percentUsed)
         assertEquals("608 MB/d", entry.dailyAllowanceText)
         assertEquals("1 día", entry.copy(daysLeft = 1).daysLeftText)

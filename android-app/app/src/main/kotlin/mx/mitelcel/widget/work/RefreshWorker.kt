@@ -13,6 +13,7 @@ import androidx.work.Worker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import mx.mitelcel.widget.LowDataNotifier
+import mx.mitelcel.widget.RefreshAlerts
 import mx.mitelcel.widget.data.UsageRepository
 import mx.mitelcel.widget.widget.WidgetRenderer
 import java.util.concurrent.TimeUnit
@@ -32,12 +33,16 @@ class RefreshWorker(context: Context, params: WorkerParameters) : Worker(context
 
         val repository = UsageRepository(applicationContext)
         val notifier = LowDataNotifier(applicationContext)
+        val alerts = RefreshAlerts(applicationContext)
         var networkFailed = false
         accountIds.forEach { id ->
             // una por una, nunca en paralelo
             val result = repository.refresh(id, minAge)
             networkFailed = networkFailed || result.retryable
-            repository.accounts.get(id)?.let { notifier.check(it, result.entry) }
+            repository.accounts.get(id)?.let {
+                notifier.check(it, result.entry)
+                alerts.onRefresh(it, result)
+            }
         }
         // Se redibuja siempre (aun sin red): así un dato viejo se marca como "Sin actualizar desde…".
         WidgetRenderer.updateAll(applicationContext)
@@ -65,9 +70,9 @@ class RefreshWorker(context: Context, params: WorkerParameters) : Worker(context
             .build()
 
         fun schedulePeriodic(context: Context) {
-            // 30 min, como la versión iOS. Android no permite menos de 15 min para trabajo periódico.
+            // 60 min (el original usaba 30): la mitad de consultas y de datos. Android no permite menos de 15 min.
             // SIN restricción de red a propósito: sin señal igual corre para marcar el dato como viejo.
-            val request = PeriodicWorkRequestBuilder<RefreshWorker>(30, TimeUnit.MINUTES)
+            val request = PeriodicWorkRequestBuilder<RefreshWorker>(60, TimeUnit.MINUTES)
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
                 .build()
             // UPDATE (y no KEEP): aplica la configuración nueva al trabajo que ya estaba programado

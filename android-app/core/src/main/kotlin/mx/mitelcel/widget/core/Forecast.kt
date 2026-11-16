@@ -123,8 +123,40 @@ object StatusLine {
     }
 }
 
-/** ¿Avisar por notificación que quedan pocos datos? Menos de 1 GB o menos del 10% del total. */
+/** ¿Avisar por notificación que quedan pocos datos? Menos del 10% del total contratado. */
 object LowData {
+    /** Proporcional al plan: con 4 GB es 0.4 GB, con 60 GB son 6 GB. Un piso fijo alarmaría de más a los planes chicos. */
+    const val LOW_FRACTION = 0.10
+
     fun isLow(entry: UsageEntry): Boolean =
-        entry.totalMB > 0 && (entry.availableMB < entry.mbPerGb || entry.availableMB < entry.totalMB * 0.10)
+        entry.totalMB > 0 && !entry.unlimited && entry.availableMB < entry.totalMB * LOW_FRACTION
+}
+
+/** Estado de los datos para pintar el widget: verde, ámbar o rojo. */
+enum class UsageLevel { OK, WARN, LOW }
+
+object UsageLevels {
+    /** Sin historial para pronosticar, se decide solo por el porcentaje restante. */
+    const val WARN_FRACTION = 0.25
+
+    /**
+     * - A este ritmo te alcanza: verde (aunque quede poco porcentaje, si ya casi es el corte).
+     * - A este ritmo se acaba antes del corte: ámbar; rojo si además queda menos del 10% del total.
+     * - Sin pronóstico (inicio de ciclo): por porcentaje restante, 25% y 10%.
+     * - Sin datos disponibles: rojo.
+     */
+    fun of(entry: UsageEntry, forecast: Forecast): UsageLevel {
+        if (entry.unlimited || entry.totalMB <= 0) return UsageLevel.OK
+        if (entry.availableMB <= 0) return UsageLevel.LOW
+        val low = LowData.isLow(entry)
+        return when (forecast) {
+            Forecast.Enough -> UsageLevel.OK
+            is Forecast.RunsOut -> if (low) UsageLevel.LOW else UsageLevel.WARN
+            Forecast.Unknown -> when {
+                low -> UsageLevel.LOW
+                entry.remainingRatio < WARN_FRACTION -> UsageLevel.WARN
+                else -> UsageLevel.OK
+            }
+        }
+    }
 }

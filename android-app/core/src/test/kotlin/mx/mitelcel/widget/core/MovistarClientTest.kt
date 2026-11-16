@@ -60,7 +60,7 @@ class MovistarClientTest {
         assertEquals(7680.0, entry.consumedMB, 0.001)
         assertEquals(4608.0, entry.availableMB, 0.001)
         assertEquals(1024, entry.mbPerGb)
-        assertEquals("4.50 GB", entry.remainingText)
+        assertEquals("4.5 GB", entry.remainingText)
         assertFalse(entry.unlimited)
     }
 
