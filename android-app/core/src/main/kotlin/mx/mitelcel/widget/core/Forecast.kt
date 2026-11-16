@@ -128,8 +128,7 @@ object LowData {
     /** Proporcional al plan: con 4 GB es 0.4 GB, con 60 GB son 6 GB. Un piso fijo alarmaría de más a los planes chicos. */
     const val LOW_FRACTION = 0.10
 
-    fun isLow(entry: UsageEntry): Boolean =
-        entry.totalMB > 0 && !entry.unlimited && entry.availableMB < entry.totalMB * LOW_FRACTION
+    fun isLow(entry: UsageEntry): Boolean = entry.totalMB > 0 && !entry.unlimited && entry.availableMB < entry.totalMB * LOW_FRACTION
 }
 
 /** Estado de los datos para pintar el widget: verde, ámbar o rojo. */
